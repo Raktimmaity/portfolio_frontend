@@ -106,7 +106,7 @@ const Review = () => {
                     aria-hidden="true"
                 />
                 <span
-                    className="absolute -bottom-24 left-18 -translate-x-1/2
+                    className="hidden md:inline lg:inline absolute -bottom-24 left-18 -translate-x-1/2
                h-20 w-20 rounded-full
                bg-gradient-to-r from-cyan-500 to-emerald-500
                opacity-90 border border-white/10
