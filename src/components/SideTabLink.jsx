@@ -30,7 +30,7 @@ const SideTabLink = () => {
       >
         {/* vertical label (no extra space) */}
         <div className="h-full w-full flex items-center justify-center">
-          <span className="writing-vertical-rl font-bold tracking-wider text-[11px]">
+          <span className="writing-vertical-rl font-bold tracking-wider text-sm">
             Testimonial
           </span>
         </div>

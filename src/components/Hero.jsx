@@ -6,7 +6,7 @@ const Hero = () => {
     <section className="pt-28 flex flex-col md:flex-row justify-around items-center py-16 text-white relative overflow-hidden max-w-7xl mx-auto px-6">
       {/* Text Section */}
       <div className="max-w-lg z-10 text-center md:text-left">
-        <h2 className="text-2xl font-semibold text-cyan-300 mb-3 tracking-wide">
+        <h2 className="text-2xl font-semibold text-white mb-3 tracking-wide">
           Welcome
         </h2>
         <h1 className="text-4xl font-bold leading-tight">
@@ -17,8 +17,8 @@ const Hero = () => {
         </h1>
 
         {/* Typewriter Effect */}
-        <p className="text-lg text-cyan-200 mt-4">
-            <span className="text-cyan-400">{"<"}</span>
+        <p className="text-lg text-white mt-4">
+            <span className="text-cyan-400">{"<"} {" "}</span>
           <Typewriter
             words={[
               "Front-End Developer!",
@@ -28,12 +28,16 @@ const Hero = () => {
             ]}
             loop={0}
             cursor
-            cursorStyle="_"
+            cursorStyle="|"
             typeSpeed={70}
             deleteSpeed={50}
             delaySpeed={1500}
           />
-          <span className="text-cyan-400">{"/>"}</span>
+          <span className="text-cyan-400">{" />"} {" "}</span>
+        </p>
+        {/* Company Name */}
+        <p className="text-md text-gray-300 mt-2">
+          @ <span className="text-cyan-400 text-2xl">Company Name</span>
         </p>
 
         {/* Reviews */}

@@ -42,3 +42,13 @@ html { scroll-behavior: smooth; }
   writing-mode: vertical-rl;
   text-orientation: mixed;
 }
+
+/* For entire page */
+::-webkit-scrollbar {
+  display: none; /* Chrome, Safari */
+}
+
+html, body {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE, Edge */
+}

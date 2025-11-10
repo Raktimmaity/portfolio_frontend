@@ -41,7 +41,7 @@ const Navbar = () => {
               className="text-3xl font-bold tracking-wide text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-green-400 to-blue-400 transition .3s hover:drop-shadow-[0_0_10px_rgba(34,211,238,0.6)]"
               onClick={() => setOpen(false)}
             >
-              Raktim Maity
+              Raktim <span className='text-white'> Maity</span>
             </Link>
 
             {/* Desktop links */}
@@ -134,7 +134,7 @@ const Navbar = () => {
                   </NavLink>
                 </li>
               ))}
-              <li>
+              {/* <li>
                 <Link
                   to="/contact-me"
                   onClick={() => setOpen(false)}
@@ -142,7 +142,7 @@ const Navbar = () => {
                 >
                   Let’s Talk
                 </Link>
-              </li>
+              </li> */}
             </ul>
 
             {/* Social icons below Let’s Talk */}

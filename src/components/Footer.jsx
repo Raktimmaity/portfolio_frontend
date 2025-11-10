@@ -9,6 +9,7 @@ import {
     FaPhoneAlt,
     FaEnvelope,
 } from "react-icons/fa";
+import { Link } from "react-router-dom";   // ✅ added
 
 /* —— editable data —— */
 const brand = {
@@ -24,8 +25,22 @@ const brand = {
     ],
 };
 
-const links = ["Home", "About", "Resume", "Projects", "Contact"];
-const important = ["Contact", "Feedback", "Testimonial", "Co-Activities"];
+
+// ✅ updated to match Navbar routes
+const links = [
+    { label: "Home", to: "/" },
+    { label: "About", to: "/about-me" },
+    { label: "Resume", to: "/my-resume" },
+    { label: "Projects", to: "/my-projects" },
+    { label: "Contact", to: "/contact-me" },
+];
+// const important = ["Contact", "Feedback", "Testimonial", "Co-Activities"];
+
+const important = [
+    {label: "Conatct", to: "/contact-me"},
+    {label: "Testimonial", to: "/review"},
+    {label: "Co-Activities", to: "/co-activities"},
+]
 
 const contact = {
     location: { icon: <FaMapMarkerAlt />, text: "Tamluk, West Bengal" },
@@ -100,15 +115,15 @@ const Footer = () => {
                     <div>
                         <h4 className="font-semibold text-sm tracking-widest text-cyan-200 mb-3">LINKS</h4>
                         <ul className="space-y-2">
-                            {links.map((l) => (
-                                <li key={l} className="flex items-center gap-3">
+                            {links.map(({ label, to }) => (
+                                <li key={to} className="flex items-center gap-3">
                                     <span className="h-2 w-2 rounded-full bg-cyan-400 shadow-[0_0_8px_rgba(34,211,238,0.8)]" />
-                                    <a
-                                        href={`#${l.toLowerCase()}`}
+                                    <Link
+                                        to={to}
                                         className="text-gray-200 hover:text-white transition"
                                     >
-                                        {l}
-                                    </a>
+                                        {label}
+                                    </Link>
                                 </li>
                             ))}
                         </ul>
@@ -120,15 +135,16 @@ const Footer = () => {
                             IMPORTANT LINKS
                         </h4>
                         <ul className="space-y-2">
-                            {important.map((l) => (
-                                <li key={l} className="flex items-center gap-3">
+                            {important.map(({ label, to}) => (
+                                <li key={to} className="flex items-center gap-3">
                                     <span className="h-2 w-2 rounded-full bg-green-400 shadow-[0_0_8px_rgba(34,197,94,0.8)]" />
-                                    <a
-                                        href={`#${l.toLowerCase().replace(/\s+/g, "-")}`}
+                                    <Link
+                                        // href={`#${l.toLowerCase().replace(/\s+/g, "-")}`}
+                                        to={to}
                                         className="text-gray-200 hover:text-white transition"
                                     >
-                                        {l}
-                                    </a>
+                                        {label}
+                                    </Link>
                                 </li>
                             ))}
                         </ul>
@@ -160,6 +176,7 @@ const Footer = () => {
 
                 {/* separator */}
                 <div className="mt-10 h-px w-full bg-gradient-to-r from-transparent via-cyan-500/30 to-transparent" />
+
 
                 {/* bottom line */}
                 <div className="text-center text-sm text-cyan-200 mt-4">

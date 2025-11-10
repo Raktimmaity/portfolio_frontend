@@ -1,5 +1,5 @@
 import React from "react";
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, useLocation } from "react-router-dom";
 import Navbar from "./components/Navbar";
 import Sidebar from "./components/Sidebar";
 import Hero from "./components/Hero";
@@ -21,6 +21,9 @@ import ScrollToTop from "./components/ScrollToTop";
 import BackToTop from "./components/BackToTop";
 import SideTabLink from "./components/SideTabLink";
 import Review from "./pages/Review";
+import AdminLogin from "./pages/AdminLogin";
+import Dashboard from "./pages/Dashboard";
+import { AnimatePresence } from "framer-motion";
 
 // Example new page
 const Blog = () => (
@@ -34,12 +37,17 @@ const Blog = () => (
   </div>
 );
 
-function App() {
+function AppLayout() {
+  const location = useLocation();
+
+  // hide sidebar on these routes
+  const hideSidebar = ["/boss-login", "/admin-dashboard"].includes(location.pathname);
+
   return (
-    <Router>
+    <>
       <ScrollToTop />
       <div className="App bg-[#0f172a] min-h-screen relative overflow-hidden">
-        <Toaster theme="dark" richColors position="bottom-right" />
+        <Toaster theme="dark" richColors position="top-right" />
 
         {/* Background video */}
         <video autoPlay loop muted playsInline className="absolute inset-0 w-full h-full object-cover z-0">
@@ -48,11 +56,10 @@ function App() {
         <div className="absolute inset-0 bg-black/50 z-0" />
 
         <Navbar />
-        <Sidebar />
+        {!hideSidebar && <Sidebar />}
 
         <main className="relative z-10 max-w-7xl mx-auto px-1 md:px-8 lg:px-12">
           <Routes>
-            {/* Home route shows your sections */}
             <Route
               path="/"
               element={
@@ -71,21 +78,28 @@ function App() {
                 </>
               }
             />
-            {/* New page */}
             <Route path="/about-me" element={<AboutMe />} />
-
             <Route path="/my-resume" element={<Resume />} />
             <Route path="/contact-me" element={<Contact />} />
             <Route path="/review" element={<Review />} />
+            <Route path="/boss-login" element={<AdminLogin />} />
+            <Route path="/admin-dashboard" element={<Dashboard />} />
+            <Route path="/my-projects" element={<ProjectsPage />} />
           </Routes>
         </main>
-        <Routes>
-          <Route path="/my-projects" element={<ProjectsPage />} />
-        </Routes>
+
         <SideTabLink />
         <BackToTop />
         <Footer />
       </div>
+    </>
+  );
+}
+
+function App() {
+  return (
+    <Router>
+      <AppLayout />
     </Router>
   );
 }
