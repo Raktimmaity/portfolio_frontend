@@ -116,28 +116,28 @@ const AdminAboutSection = () => {
             </div>
 
             <div>
-              <label className="block text-xs uppercase tracking-wide text-cyan-200/70 mb-2">
+              <label className="block text-sm text-cyan-100/80 mb-1">
                 Short Description About You (You can use Html Code)
               </label>
               <textarea
-                rows="4"
                 name="shortDescription"
                 value={form.shortDescription}
                 onChange={handleChange}
-                className="w-full bg-[#0b1220] border border-cyan-400/15 rounded-md px-4 py-3 text-cyan-100 focus:border-cyan-300 outline-none"
+                rows={4}
+                className="w-full bg-[#0b1220] border border-cyan-400/15 rounded-md px-4 py-2 text-cyan-100 focus:border-cyan-300 outline-none"
               />
             </div>
 
             <div>
-              <label className="block text-xs uppercase tracking-wide text-cyan-200/70 mb-2">
+              <label className="block text-sm text-cyan-100/80 mb-1">
                 Long Description About You (You can use Html Code)
               </label>
               <textarea
-                rows="5"
                 name="longDescription"
                 value={form.longDescription}
                 onChange={handleChange}
-                className="w-full bg-[#0b1220] border border-cyan-400/15 rounded-md px-4 py-3 text-cyan-100 focus:border-cyan-300 outline-none"
+                rows={6}
+                className="w-full bg-[#0b1220] border border-cyan-400/15 rounded-md px-4 py-2 text-cyan-100 focus:border-cyan-300 outline-none"
               />
             </div>
 
