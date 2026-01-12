@@ -2,9 +2,9 @@ import { useState } from "react";
 import { FaStar } from "react-icons/fa";
 import { toast } from "sonner";
 
-// Change this if you have a backend endpoint:
+const API_BASE = import.meta.env.VITE_API_BASE || import.meta.env.REACT_APP_API_BASE || "http://localhost:5000";
 const SUBMIT_URL =
-    import.meta.env.VITE_API_BASE || "http://localhost:5000/api/testimonials";
+    import.meta.env.VITE_TESTIMONIALS_URL || `${API_BASE}/api/testimonials`;
 
 const Review = () => {
     const [form, setForm] = useState({

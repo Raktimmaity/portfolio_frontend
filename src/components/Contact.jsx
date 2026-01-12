@@ -41,7 +41,7 @@ const Contact = () => {
   const [form, setForm] = useState(initialForm);
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
-  const VITE_API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:5000";
+  const VITE_API_BASE = import.meta.env.VITE_API_BASE || import.meta.env.REACT_APP_API_BASE || "http://localhost:5000";
 
   const emailRegex = useMemo(
     () =>

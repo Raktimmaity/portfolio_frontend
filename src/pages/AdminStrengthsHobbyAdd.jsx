@@ -5,7 +5,7 @@ import AdminSidebar from "../components/AdminSidebar";
 const AdminStrengthsHobbyAdd = () => {
   const [form, setForm] = useState({ category: "", name: "" });
   const [saving, setSaving] = useState(false);
-  const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:5000";
+  const API_BASE = import.meta.env.VITE_API_BASE || import.meta.env.REACT_APP_API_BASE || "http://localhost:5000";
 
   const handleChange = (e) => {
     const { name, value } = e.target;

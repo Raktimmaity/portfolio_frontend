@@ -8,6 +8,7 @@ const AdminLogin = () => {
   const [loading, setLoading] = useState(false);
   const [greeting, setGreeting] = useState("");
   const navigate = useNavigate();
+  const API_BASE = import.meta.env.REACT_APP_API_BASE || "http://localhost:5000";
 
   const getGreeting = () => {
     const hour = new Date().getHours();
@@ -31,7 +32,7 @@ const AdminLogin = () => {
     setLoading(true);
     try {
     //   const res = await fetch(`${import.meta.env.REACT_APP_API_BASE}/api/admin/login`, {
-    const res = await fetch("http://localhost:5000/api/admin/login", {
+    const res = await fetch(`${API_BASE}/api/admin/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(form),

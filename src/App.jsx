@@ -56,7 +56,7 @@ import AdminMessagesContact from "./pages/AdminMessagesContact";
 import AdminMessagesFeedback from "./pages/AdminMessagesFeedback";
 import AdminMessagesTestimonial from "./pages/AdminMessagesTestimonial";
 
-const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:5000";
+const API_BASE = import.meta.env.VITE_API_BASE || import.meta.env.REACT_APP_API_BASE || "http://localhost:5000";
 
 /* Optional Example Page */
 const Blog = () => (

@@ -4,7 +4,7 @@ import { FaEdit, FaTrash } from "react-icons/fa";
 import AdminSidebar from "../components/AdminSidebar";
 
 const AdminMessagesTestimonial = () => {
-  const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:5000";
+  const API_BASE = import.meta.env.VITE_API_BASE || import.meta.env.REACT_APP_API_BASE || "http://localhost:5000";
   const [items, setItems] = useState([]);
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);

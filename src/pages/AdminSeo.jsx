@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Toaster, toast } from "sonner";
 import AdminSidebar from "../components/AdminSidebar";
 
-const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:5000";
+const API_BASE = import.meta.env.VITE_API_BASE || import.meta.env.REACT_APP_API_BASE || "http://localhost:5000";
 
 const AdminSeo = () => {
   const [form, setForm] = useState({

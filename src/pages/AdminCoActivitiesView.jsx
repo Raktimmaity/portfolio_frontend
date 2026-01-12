@@ -3,7 +3,7 @@ import { Toaster, toast } from "sonner";
 import { FaEdit, FaTrash } from "react-icons/fa";
 import AdminSidebar from "../components/AdminSidebar";
 
-const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:5000";
+const API_BASE = import.meta.env.VITE_API_BASE || import.meta.env.REACT_APP_API_BASE || "http://localhost:5000";
 const CLOUD_NAME = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME || "";
 const UPLOAD_PRESET = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET || "";
 
