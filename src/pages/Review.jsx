@@ -4,7 +4,7 @@ import { toast } from "sonner";
 
 // Change this if you have a backend endpoint:
 const SUBMIT_URL =
-    import.meta?.env?.VITE_TESTIMONIALS_URL || "/api/testimonials";
+    import.meta.env.VITE_API_BASE || "http://localhost:5000/api/testimonials";
 
 const Review = () => {
     const [form, setForm] = useState({
@@ -65,18 +65,7 @@ const Review = () => {
             setForm({ name: "", email: "", profession: "", rating: 0, comment: "" });
             setHover(0);
         } catch (err) {
-            // Optional fallback so you can test success flow without a backend
-            try {
-                const key = "__testimonials__";
-                const arr = JSON.parse(localStorage.getItem(key) || "[]");
-                arr.push(payload);
-                localStorage.setItem(key, JSON.stringify(arr));
-                toast.success("Saved locally (connect backend to persist).");
-                setForm({ name: "", email: "", profession: "", rating: 0, comment: "" });
-                setHover(0);
-            } catch {
-                toast.error("Could not submit right now. Please try again.");
-            }
+            toast.error("Could not submit right now. Please try again.");
         } finally {
             setSubmitting(false);
         }

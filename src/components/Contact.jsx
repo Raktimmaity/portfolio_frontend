@@ -41,6 +41,7 @@ const Contact = () => {
   const [form, setForm] = useState(initialForm);
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
+  const VITE_API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:5000";
 
   const emailRegex = useMemo(
     () =>
@@ -79,7 +80,7 @@ const Contact = () => {
       setLoading(true);
 
       // Send to your backend route (adjust if needed)
-      const res = await fetch("/api/contact", {
+      const res = await fetch(`${VITE_API_BASE}/api/contact`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(form),

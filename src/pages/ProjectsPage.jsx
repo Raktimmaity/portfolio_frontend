@@ -262,7 +262,7 @@ const ProjectsPage = () => {
   return (
     <main className="min-h-screen text-white">
       {/* ---------- HERO (unchanged) ---------- */}
-      <section className="relative overflow-hidden h-[40vh] md:h-[80vh] w-screen flex items-center">
+      <section className="relative overflow-hidden h-[40vh] md:h-[80vh] w-full flex items-center">
         <div className="pointer-events-none absolute -top-40 left-0 right-0 h-[450px] opacity-90">
           <div className="absolute inset-0 bg-gradient-to-br from-purple-600/70 via-violet-700/60 to-fuchsia-700/50 blur-2xl" />
           <div className="absolute inset-x-0 top-16 h-40 bg-gradient-to-r from-emerald-500/40 via-cyan-400/30 to-emerald-500/40 blur-xl" />
