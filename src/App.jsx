@@ -89,6 +89,7 @@ function AppLayout() {
   // Determine if the page is admin-related
   const isAdminPage = location.pathname.startsWith("/admin") || location.pathname === "/boss-login";
   const isHomePage = location.pathname === "/";
+  const isProjectsPage = location.pathname === "/my-projects";
 
   useEffect(() => {
     if (!isHomePage) return;
@@ -129,8 +130,11 @@ function AppLayout() {
         {!isAdminPage && <Sidebar />}
 
         <main
-          className={`relative z-10 ${isAdminPage ? "max-w-full p-0" : "max-w-7xl mx-auto px-1 md:px-8 lg:px-12"
-            }`}
+          className={`relative z-10 ${
+            isAdminPage || isProjectsPage
+              ? "max-w-full p-0"
+              : "max-w-7xl mx-auto px-1 md:px-8 lg:px-12"
+          }`}
         >
           <Routes>
             <Route

@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Toaster } from "sonner";
 import {
   FaEye,
@@ -8,10 +9,12 @@ import {
   FaUserCircle,
 } from "react-icons/fa";
 import AdminSidebar from "../components/AdminSidebar";
+// import { useNavigate } from "react-router-dom";
 
 const API_BASE = import.meta.env.VITE_API_BASE || import.meta.env.REACT_APP_API_BASE || "http://localhost:5000";
 
 const Dashboard = () => {
+  const navigate = useNavigate();
   const user = useMemo(() => {
     try {
       return JSON.parse(localStorage.getItem("admin_user") || "{}");
@@ -23,6 +26,9 @@ const Dashboard = () => {
   const [skillsCount, setSkillsCount] = useState(0);
   const [profile, setProfile] = useState({ avatar: "", name: "" });
   const [visits, setVisits] = useState([]);
+  const [testimonials, setTestimonials] = useState([]);
+  const [messages, setMessages] = useState([]);
+  // const navigate = useNavigate();
 
   useEffect(() => {
     fetch(`${API_BASE}/api/admin/profile`, {
@@ -62,6 +68,36 @@ const Dashboard = () => {
         setVisits(counts);
       })
       .catch(() => {});
+
+    fetch(`${API_BASE}/api/admin/testimonials`, {
+      headers: { Authorization: `Bearer ${localStorage.getItem("admin_token")}` },
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        const list = Array.isArray(data) ? data : [];
+        list.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+        const latest = list.slice(0, 3).map((t) => ({
+          name: t.name || "Anonymous",
+          comment: t.text || "",
+        }));
+        setTestimonials(latest);
+      })
+      .catch(() => {});
+
+    fetch(`${API_BASE}/api/admin/contact-messages`, {
+      headers: { Authorization: `Bearer ${localStorage.getItem("admin_token")}` },
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        const list = Array.isArray(data) ? data : [];
+        list.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+        const latest = list.slice(0, 3).map((m) => ({
+          name: m.name || "Unknown",
+          message: m.message || "",
+        }));
+        setMessages(latest);
+      })
+      .catch(() => {});
   }, []);
 
   const stats = [
@@ -82,12 +118,12 @@ const Dashboard = () => {
     .join(" ")
     : "";
 
-  const messages = ["SATYAJIT SAHA", "Risav", "Aritri podder"];
-  const testimonials = [
-    { name: "Boby Mondal", comment: "Excellent Work.." },
-    { name: "Santu Pramanik", comment: "Excellent frontend development skills." },
-    { name: "Santu Pramanik", comment: "Excellent frontend development skills." },
-  ];
+  const recentMessages = messages.length
+    ? messages
+    : [{ name: "No messages yet", message: "Check back after someone contacts you." }];
+  const latestTestimonials = testimonials.length
+    ? testimonials
+    : [{ name: "No testimonials yet", comment: "Add your first testimonial." }];
 
   return (
     <div className="bg-[#0b1222] text-white min-h-screen flex">
@@ -177,16 +213,23 @@ const Dashboard = () => {
           <section className="rounded-2xl bg-[#0f172a] border border-emerald-400/15 p-6 shadow-[0_0_30px_rgba(16,185,129,0.12)]">
             <h2 className="text-lg font-semibold text-cyan-100">Recent Messages</h2>
             <div className="mt-6 space-y-4">
-              {messages.map((name, i) => (
-                <div key={name} className="flex items-center gap-4">
+              {recentMessages.map((item, i) => (
+                <div key={`${item.name}-${i}`} className="flex items-center gap-4">
                   <div className="h-12 w-12 rounded-full bg-lime-400 flex items-center justify-center text-black font-bold">
-                    {name.slice(0, 1)}
+                    {item.name.slice(0, 1)}
                   </div>
-                  <div className="text-cyan-100">{name}</div>
+                  <div>
+                    <div className="text-cyan-100">{item.name}</div>
+                    <div className="text-xs text-cyan-100/60 line-clamp-1">{item.message}</div>
+                  </div>
                 </div>
               ))}
             </div>
-            <button className="mt-6 w-full py-2 rounded-md border border-cyan-400/30 text-cyan-100 hover:border-cyan-300 transition">
+            <button
+              type="button"
+              onClick={() => navigate("/admin-messages-testimonial")}
+              className="mt-6 w-full py-2 rounded-md border border-cyan-400/30 text-cyan-100 hover:border-cyan-300 transition"
+            >
               View All
             </button>
           </section>
@@ -200,7 +243,7 @@ const Dashboard = () => {
               <div>Comment</div>
             </div>
             <div className="divide-y divide-cyan-400/10">
-              {testimonials.map((t, i) => (
+              {latestTestimonials.map((t, i) => (
                 <div key={`${t.name}-${i}`} className={`grid grid-cols-[180px_1fr] py-4 ${i === 1 ? "bg-white/5 rounded-md px-2" : ""}`}>
                   <div className="flex items-center gap-3 text-cyan-100">
                     <div className="h-10 w-10 rounded-full bg-purple-400 flex items-center justify-center text-black font-semibold">

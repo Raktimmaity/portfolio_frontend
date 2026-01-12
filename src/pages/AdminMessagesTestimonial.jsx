@@ -157,6 +157,7 @@ const AdminMessagesTestimonial = () => {
                   <th className="py-3 px-2 w-16">ID</th>
                   <th className="py-3 px-2">Name</th>
                   <th className="py-3 px-2">Designation</th>
+                  <th className="py-3 px-2 w-24">Rating</th>
                   <th className="py-3 px-2">Message</th>
                   <th className="py-3 px-2 w-40">Approval Status</th>
                   <th className="py-3 px-2 w-28">Action</th>
@@ -168,6 +169,7 @@ const AdminMessagesTestimonial = () => {
                     <td className="py-3 px-2">{(currentPage - 1) * pageSize + i + 1}</td>
                     <td className="py-3 px-2">{item.name}</td>
                     <td className="py-3 px-2">{item.role || "—"}</td>
+                    <td className="py-3 px-2">{item.rating || 0}/5</td>
                     <td className="py-3 px-2">
                       <div className="max-h-20 overflow-auto rounded-md bg-[#0b1220] border border-emerald-400/10 px-3 py-2 text-sm text-emerald-100/90">
                         {item.text}
@@ -206,7 +208,7 @@ const AdminMessagesTestimonial = () => {
                 ))}
                 {paged.length === 0 && (
                   <tr>
-                    <td colSpan="6" className="py-6 text-center text-emerald-100/60">
+                    <td colSpan="7" className="py-6 text-center text-emerald-100/60">
                       No testimonials found.
                     </td>
                   </tr>
@@ -265,6 +267,9 @@ const AdminMessagesTestimonial = () => {
               </div>
               <div className="rounded-md bg-[#0b1220] border border-emerald-400/10 px-4 py-3 text-sm text-emerald-100/90">
                 {editing?.text}
+              </div>
+              <div className="text-sm text-emerald-100/80">
+                Rating: <span className="text-emerald-100">{editing?.rating || 0}/5</span>
               </div>
               <div className="flex items-center justify-end gap-3 border-t border-emerald-400/10 pt-4">
                 <button

@@ -1,5 +1,4 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { projectsData } from "../data/projects";
 import {
   FaExternalLinkAlt,
   FaGithub,
@@ -21,13 +20,74 @@ function getPaidFlag(p) {
 
 const NAV_OFFSET_PX = 80; // stick just below your fixed navbar
 const PAGE_SIZE = 4;
+const API_BASE = import.meta.env.VITE_API_BASE || import.meta.env.REACT_APP_API_BASE || "http://localhost:5000";
 
 const ProjectsPage = () => {
   const [selected, setSelected] = useState(null); // project object
   const [closing, setClosing] = useState(false);
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
+  const [totalCount, setTotalCount] = useState(0);
+  const [showFullDescription, setShowFullDescription] = useState(false);
+  const [projectsData, setProjectsData] = useState({
+    summary: { total: 0, heroTitle: "Welcome to My Projects", heroSub: "" },
+    skillColors: {},
+    skills: [],
+    items: [],
+  });
 
   const listRef = useRef(null);
+
+  useEffect(() => {
+    fetch(`${API_BASE}/api/projects`)
+      .then((res) => res.json())
+      .then((data) => {
+        const list = Array.isArray(data) ? data : [];
+        const skillsSet = new Set();
+        list.forEach((p) => (p.skills || []).forEach((s) => skillsSet.add(s)));
+        setProjectsData({
+          summary: {
+            total: list.length,
+            heroTitle: "Welcome to My Projects",
+            heroSub:
+              "Explore my latest projects and innovations. Each project reflects my dedication to learning and building amazing things.",
+          },
+          skillColors: {},
+          skills: Array.from(skillsSet).sort(),
+          items: list.map((p) => ({
+            id: p._id,
+            title: p.title,
+            image: p.imageUrl,
+            type: (p.projectType || "").toLowerCase(),
+            hosted: { live: Boolean(p.projectLink), url: p.projectLink || null },
+            github: p.githubLink || "",
+            uploadedOn: p.createdAt,
+            tech: p.skills || [],
+            isPaid: (p.cost || "").toLowerCase() === "paid",
+            description: p.description || "",
+          })),
+        });
+      })
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    const target = Number(projectsData.summary.total || 0);
+    let start = null;
+    let rafId = null;
+    const duration = 1200;
+
+    const tick = (ts) => {
+      if (!start) start = ts;
+      const elapsed = ts - start;
+      const t = Math.min(1, elapsed / duration);
+      const eased = 1 - Math.pow(1 - t, 3);
+      setTotalCount(Math.floor(eased * target));
+      if (t < 1) rafId = requestAnimationFrame(tick);
+    };
+
+    rafId = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(rafId);
+  }, [projectsData.summary.total]);
 
   /* ------------ FILTER STATE ------------ */
   const [selSkills, setSelSkills] = useState(new Set()); // empty = All
@@ -39,12 +99,16 @@ const ProjectsPage = () => {
   const [page, setPage] = useState(1);
 
   // modal controls
-  const openModal = (project) => setSelected(project);
+  const openModal = (project) => {
+    setSelected(project);
+    setShowFullDescription(false);
+  };
   const closeModal = () => {
     setClosing(true);
     setTimeout(() => {
       setSelected(null);
       setClosing(false);
+      setShowFullDescription(false);
     }, 250);
   };
 
@@ -66,12 +130,12 @@ const ProjectsPage = () => {
 
   /* ------------ SKILLS LIST (auto) ------------ */
   const allSkills = useMemo(() => {
-    const base = Array.isArray(projectsData.skills) ? projectsData.skills : ["All"];
+    const base = Array.isArray(projectsData.skills) ? projectsData.skills : [];
     const s = new Set(base);
     projectsData.items?.forEach((p) => p.tech?.forEach((t) => s.add(t)));
-    const arr = Array.from(s).filter((x) => x && x !== "All");
+    const arr = Array.from(s).filter((x) => x);
     return arr.sort();
-  }, []);
+  }, [projectsData.skills, projectsData.items]);
 
   /* ------------ FILTERED ITEMS ------------ */
   const filteredItems = useMemo(() => {
@@ -104,7 +168,7 @@ const ProjectsPage = () => {
 
       return skillsOk && dateOk && paidOk;
     });
-  }, [selSkills, dateFrom, dateTo, paid]);
+  }, [projectsData.items, selSkills, dateFrom, dateTo, paid]);
 
   // Reset to page 1 when filters change
   useEffect(() => { setPage(1); }, [selSkills, dateFrom, dateTo, paid]);
@@ -229,7 +293,6 @@ const ProjectsPage = () => {
 
       // container bounds (the whole projects list section)
       const containerRect = listRef.current.getBoundingClientRect();
-      const containerTopAbs = containerRect.top + window.scrollY;
       const containerBottomAbs = containerRect.bottom + window.scrollY;
 
       const asideH = dims.h || asideWrapRef.current.offsetHeight;
@@ -237,19 +300,26 @@ const ProjectsPage = () => {
       // start fixing when top passes wrapper top minus the navbar offset
       const startFixY = baseTopAbsRef.current - NAV_OFFSET_PX;
 
-      // stop fixing when the bottom of the container is reached (just before footer),
-      // i.e., when the fixed aside’s bottom would pass the container bottom
-      const stopFixY = containerBottomAbs - NAV_OFFSET_PX - asideH;
+      // Calculate when sidebar bottom would reach the end of the container
+      // We want to stop being fixed BEFORE the sidebar reaches the footer
+      const sidebarBottomIfFixed = scrollY + NAV_OFFSET_PX + asideH;
+
+      // Add buffer to ensure sidebar stops well before footer
+      const FOOTER_BUFFER = 100;
+      const maxBottomPosition = containerBottomAbs - FOOTER_BUFFER;
 
       if (scrollY < startFixY) {
+        // Haven't reached sticky point yet
         setFixed(false);
         setBottomed(false);
-      } else if (scrollY >= startFixY && scrollY <= stopFixY) {
+      } else if (sidebarBottomIfFixed < maxBottomPosition) {
+        // Safe to be fixed - won't overlap footer
         setFixed(true);
         setBottomed(false);
       } else {
+        // Would overlap footer - switch to absolute positioning at bottom
         setFixed(false);
-        setBottomed(true); // pin to bottom of its column
+        setBottomed(true);
       }
     };
 
@@ -260,25 +330,41 @@ const ProjectsPage = () => {
 
   /* ---------- RENDER ---------- */
   return (
-    <main className="min-h-screen text-white">
-      {/* ---------- HERO (unchanged) ---------- */}
-      <section className="relative overflow-hidden h-[40vh] md:h-[80vh] w-full flex items-center">
-        <div className="pointer-events-none absolute -top-40 left-0 right-0 h-[450px] opacity-90">
-          <div className="absolute inset-0 bg-gradient-to-br from-purple-600/70 via-violet-700/60 to-fuchsia-700/50 blur-2xl" />
-          <div className="absolute inset-x-0 top-16 h-40 bg-gradient-to-r from-emerald-500/40 via-cyan-400/30 to-emerald-500/40 blur-xl" />
+    <main className="min-h-screen text-white bg-[#070b17]">
+      {/* ---------- HERO ---------- */}
+      <section className="relative overflow-hidden min-h-[50vh] md:h-[70vh] w-full flex items-center py-20 md:py-0">
+        {/* Animated background effects */}
+        <div className="pointer-events-none absolute inset-0 overflow-hidden">
+          <div className="absolute top-10 left-10 w-96 h-96 bg-emerald-500/20 rounded-full blur-3xl animate-pulse" />
+          <div className="absolute bottom-10 right-10 w-[500px] h-[500px] bg-cyan-500/15 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[400px] bg-gradient-to-r from-emerald-500/10 via-cyan-400/10 to-emerald-500/10 blur-2xl" />
         </div>
 
-        <div className="relative max-w-6xl mx-auto px-6 md:px-12 pt-24 pb-20 text-center">
-          <h1 className="text-4xl md:text-5xl font-extrabold drop-shadow-[0_0_20px_rgba(44,255,125,0.35)]">
+        <div className="relative z-10 max-w-6xl mx-auto px-4 md:px-12 text-center w-full">
+          <div className="inline-block mb-4 px-4 py-1.5 rounded-full border border-emerald-400/30 bg-emerald-400/10 text-emerald-300 text-xs md:text-sm font-medium">
+            Portfolio Showcase
+          </div>
+
+          <h1 className="text-3xl md:text-6xl font-extrabold mb-4 md:mb-6 bg-gradient-to-r from-cyan-400 via-emerald-400 to-cyan-400 bg-clip-text text-transparent drop-shadow-[0_0_30px_rgba(44,255,125,0.4)] px-4">
             {projectsData.summary.heroTitle}
           </h1>
-          <p className="mt-4 text-cyan-100/90 max-w-3xl mx-auto">
-            {projectsData.summary.heroSub} Already{" "}
-            <span className="font-extrabold text-emerald-400 drop-shadow-[0_0_10px_rgba(44,255,125,.55)]">
-              {projectsData.summary.total}+
-            </span>{" "}
-            uploaded.
+
+          <p className="mt-3 md:mt-4 text-sm md:text-xl text-slate-300 max-w-3xl mx-auto leading-relaxed px-4">
+            {projectsData.summary.heroSub}
           </p>
+
+          <div className="mt-6 md:mt-8 flex flex-col md:flex-row items-center justify-center gap-3 md:gap-2 px-4">
+            <div className="hidden md:block h-[2px] w-20 bg-gradient-to-r from-transparent via-emerald-400 to-transparent rounded-full" />
+            <div className="px-6 py-3 rounded-2xl border-2 border-emerald-400/50 bg-emerald-400/10 backdrop-blur-sm">
+              <div className="flex items-center justify-center gap-2">
+                <span className="text-4xl md:text-6xl font-extrabold text-emerald-400 drop-shadow-[0_0_20px_rgba(44,255,125,.8)]">
+                  {totalCount}+
+                </span>
+                <span className="text-xs md:text-sm text-slate-300 uppercase tracking-wider">Projects</span>
+              </div>
+            </div>
+            <div className="hidden md:block h-[2px] w-20 bg-gradient-to-r from-transparent via-emerald-400 to-transparent rounded-full" />
+          </div>
         </div>
       </section>
 
@@ -291,7 +377,7 @@ const ProjectsPage = () => {
         <h2 className="sr-only">Projects List</h2>
 
         {/* Mobile toolbar (filters + result count) */}
-        <div className="md:hidden mb-4 flex items-center justify-between relative z-[41]">
+        <div className="md:hidden mt-5 md:mt-0 mb-4 flex items-center justify-between relative z-[41]">
           <button
             type="button"
             onClick={() => setMobileFiltersOpen(true)}
@@ -324,7 +410,8 @@ const ProjectsPage = () => {
                   : bottomed
                     ? {
                       position: "absolute",
-                      bottom: 0,
+                      top: "auto",
+                      bottom: "100px",
                       left: 0,
                       width: "100%",
                       zIndex: 20,
@@ -332,96 +419,109 @@ const ProjectsPage = () => {
                     : undefined
               }
             >
-              <div className="rounded-xl bg-gradient-to-br from-gray-900/70 to-gray-800/50 border border-emerald-400/30 p-4">
-                {/* Skills (multi-select) */}
-                <h3 className="font-bold mb-3 text-white">Filter by Skills</h3>
-                <div className="flex flex-wrap gap-2 mb-4">
-                  <button
-                    type="button"
-                    onClick={() => setSelSkills(new Set())}
-                    className={`px-3 py-1.5 rounded-full text-sm border transition
-                      ${selSkills.size === 0
-                        ? "border-emerald-400 bg-emerald-500/10 text-emerald-200 shadow-[0_0_14px_rgba(44,255,125,.55)]"
-                        : "border-emerald-400/25 text-white hover:border-emerald-400/70 hover:bg-emerald-500/5"}`}
-                    aria-pressed={selSkills.size === 0}
-                  >
-                    All
-                  </button>
+              <div className="rounded-xl bg-gradient-to-br from-white/[0.02] to-white/[0.01] backdrop-blur border border-emerald-400/30 p-5 shadow-[0_0_20px_rgba(16,185,129,0.15)]">
+                <div className="mb-5 pb-3 border-b border-emerald-400/20">
+                  <h2 className="font-bold text-lg text-emerald-400 flex items-center gap-2">
+                    <FaFilter className="text-sm" />
+                    Filters
+                  </h2>
+                </div>
 
-                  {allSkills.map((s) => {
-                    const on = selSkills.has(s);
-                    return (
-                      <button
-                        type="button"
-                        key={s}
-                        onClick={() => {
-                          setSelSkills((prev) => {
-                            const next = new Set(prev);
-                            on ? next.delete(s) : next.add(s);
-                            return next;
-                          });
-                        }}
-                        className={`px-3 py-1.5 rounded-full text-sm border transition
-                          ${on
-                            ? "border-emerald-400 bg-emerald-500 text-emerald-200 shadow-[0_0_14px_rgba(44,255,125,.55)]"
-                            : "border-emerald-400/25 text-white hover:border-emerald-400/70 hover:bg-emerald-500/5"}`}
-                        aria-pressed={on}
-                      >
-                        {s}
-                      </button>
-                    );
-                  })}
+                {/* Skills (multi-select) */}
+                <div className="mb-5">
+                  <h3 className="font-semibold mb-3 text-sm text-slate-200 uppercase tracking-wider">Skills</h3>
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setSelSkills(new Set())}
+                      className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-all duration-300
+                        ${selSkills.size === 0
+                          ? "border-emerald-400 bg-emerald-400/20 text-emerald-200 shadow-[0_0_14px_rgba(44,255,125,.55)]"
+                          : "border-emerald-400/25 text-slate-300 hover:border-emerald-400/60 hover:bg-emerald-500/10"}`}
+                      aria-pressed={selSkills.size === 0}
+                    >
+                      All
+                    </button>
+
+                    {allSkills.map((s) => {
+                      const on = selSkills.has(s);
+                      return (
+                        <button
+                          type="button"
+                          key={s}
+                          onClick={() => {
+                            setSelSkills((prev) => {
+                              const next = new Set(prev);
+                              on ? next.delete(s) : next.add(s);
+                              return next;
+                            });
+                          }}
+                          className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-all duration-300
+                            ${on
+                              ? "border-emerald-400 bg-emerald-400/20 text-emerald-200 shadow-[0_0_14px_rgba(44,255,125,.55)]"
+                              : "border-emerald-400/25 text-slate-300 hover:border-emerald-400/60 hover:bg-emerald-500/10"}`}
+                          aria-pressed={on}
+                        >
+                          {s}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
 
                 {/* Date */}
-                <h3 className="font-bold mb-2 text-white">Filter by Date</h3>
-                <div className="grid grid-cols-2 gap-2 mb-4">
-                  <label className="text-xs text-cyan-200/90">
-                    From
-                    <input
-                      type="date"
-                      value={dateFrom}
-                      onChange={(e) => setDateFrom(e.target.value)}
-                      className="mt-1 w-full rounded-md bg-black/30 border border-emerald-400/30 px-2 py-1 text-sm outline-none focus:border-emerald-400"
-                    />
-                  </label>
-                  <label className="text-xs text-cyan-200/90">
-                    To
-                    <input
-                      type="date"
-                      value={dateTo}
-                      onChange={(e) => setDateTo(e.target.value)}
-                      className="mt-1 w-full rounded-md bg-black/30 border border-emerald-400/30 px-2 py-1 text-sm outline-none focus:border-emerald-400"
-                    />
-                  </label>
-                </div>
+                {/* <div className="mb-5">
+                  <h3 className="font-semibold mb-3 text-sm text-slate-200 uppercase tracking-wider">Date Range</h3>
+                  <div className="grid grid-cols-1 gap-3">
+                    <label className="text-xs text-slate-400 font-medium">
+                      From
+                      <input
+                        type="date"
+                        value={dateFrom}
+                        onChange={(e) => setDateFrom(e.target.value)}
+                        className="mt-1.5 w-full rounded-lg bg-black/40 border border-emerald-400/30 px-3 py-2 text-sm text-slate-200 outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400/20 transition-all"
+                      />
+                    </label>
+                    <label className="text-xs text-slate-400 font-medium">
+                      To
+                      <input
+                        type="date"
+                        value={dateTo}
+                        onChange={(e) => setDateTo(e.target.value)}
+                        className="mt-1.5 w-full rounded-lg bg-black/40 border border-emerald-400/30 px-3 py-2 text-sm text-slate-200 outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400/20 transition-all"
+                      />
+                    </label>
+                  </div>
+                </div> */}
 
                 {/* Free/Paid */}
-                <h3 className="font-bold mb-2 text-emerald-300">Free or Paid</h3>
-                <div className="flex flex-wrap gap-2">
-                  {[
-                    { id: "all", label: "All" },
-                    { id: "free", label: "Free" },
-                    { id: "paid", label: "Paid" },
-                  ].map((opt) => (
-                    <button
-                      type="button"
-                      key={opt.id}
-                      onClick={() => setPaid(opt.id)}
-                      className={`px-3 py-1.5 rounded-md text-sm border transition
-                        ${paid === opt.id
-                          ? "border-cyan-400 bg-cyan-500/10 text-white shadow-[0_0_14px_rgba(34,211,238,.55)]"
-                          : "border-cyan-400/25 text-white hover:border-cyan-400/70 hover:bg-cyan-500/5"
-                        }`}
-                      aria-pressed={paid === opt.id}
-                    >
-                      {opt.label}
-                    </button>
-                  ))}
+                <div className="mb-5">
+                  <h3 className="font-semibold mb-3 text-sm text-slate-200 uppercase tracking-wider">Pricing</h3>
+                  <div className="grid grid-cols-3 gap-2">
+                    {[
+                      { id: "all", label: "All" },
+                      { id: "free", label: "Free" },
+                      { id: "paid", label: "Paid" },
+                    ].map((opt) => (
+                      <button
+                        type="button"
+                        key={opt.id}
+                        onClick={() => setPaid(opt.id)}
+                        className={`px-3 py-2 rounded-lg text-xs font-medium border transition-all duration-300
+                          ${paid === opt.id
+                            ? "border-cyan-400 bg-cyan-400/20 text-cyan-200 shadow-[0_0_14px_rgba(34,211,238,.55)]"
+                            : "border-cyan-400/25 text-slate-300 hover:border-cyan-400/60 hover:bg-cyan-500/10"
+                          }`}
+                        aria-pressed={paid === opt.id}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
                 </div>
 
                 {/* Reset */}
-                <div className="mt-4">
+                <div className="pt-3 border-t border-emerald-400/20">
                   <button
                     type="button"
                     onClick={() => {
@@ -430,9 +530,9 @@ const ProjectsPage = () => {
                       setDateTo("");
                       setPaid("all");
                     }}
-                    className="w-full rounded-md border border-emerald-400/40 px-3 py-2 text-sm text-emerald-200 hover:shadow-[0_0_12px_rgba(44,255,125,.7)] transition"
+                    className="w-full rounded-lg border border-emerald-400/40 bg-emerald-400/5 px-4 py-2.5 text-sm font-medium text-emerald-200 hover:bg-emerald-400/10 hover:shadow-[0_0_16px_rgba(44,255,125,.5)] transition-all duration-300"
                   >
-                    Reset Filters
+                    Reset All Filters
                   </button>
                 </div>
               </div>
@@ -442,88 +542,128 @@ const ProjectsPage = () => {
           {/* -------- CARDS GRID -------- */}
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-2">
             {total === 0 ? (
-              <div className="col-span-full rounded-xl border border-emerald-400/30 bg-black/30 p-6 text-center text-cyan-200">
-                No projects found.
+              <div className="col-span-full rounded-xl border border-emerald-400/30 bg-white/[0.02] backdrop-blur p-8 text-center">
+                <div className="text-5xl mb-4 text-emerald-400/30">
+                  <FaFilter className="inline-block" />
+                </div>
+                <h3 className="text-xl font-semibold text-slate-200 mb-2">No projects found</h3>
+                <p className="text-slate-400">Try adjusting your filters to see more results</p>
               </div>
             ) : (
               pageItems.map((p) => (
                 <article
                   key={p.id}
-                  className="group relative rounded-2xl overflow-hidden border border-emerald-400/25 bg-gradient-to-br from-gray-900/70 to-gray-800/50
-                             shadow-[0_0_0_rgba(0,0,0,0)] hover:shadow-[0_0_28px_rgba(44,255,125,.25)]
-                             transition-all duration-300 will-change-transform hover:-translate-y-0.5"
+                  className="group relative rounded-2xl overflow-hidden border border-emerald-400/30 bg-gradient-to-br from-white/[0.03] to-white/[0.01] backdrop-blur
+                             shadow-[0_0_0_rgba(0,0,0,0)] hover:shadow-[0_0_30px_rgba(44,255,125,.3)] hover:border-emerald-400/50
+                             transition-all duration-500 will-change-transform hover:-translate-y-1 self-start"
                 >
-                  {/* glow */}
+                  {/* Animated glow effect */}
                   <span
                     className="pointer-events-none absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100
-                               bg-[radial-gradient(300px_120px_at_20%_20%,rgba(16,185,129,.15),transparent_60%),radial-gradient(300px_120px_at_80%_0%,rgba(34,211,238,.15),transparent_60%)]
-                               transition-opacity duration-300"
+                               bg-[radial-gradient(400px_150px_at_30%_30%,rgba(16,185,129,.12),transparent_70%),radial-gradient(400px_150px_at_70%_10%,rgba(34,211,238,.12),transparent_70%)]
+                               transition-opacity duration-500"
                     aria-hidden
                   />
 
-                  {/* image header (16:9) */}
-                  <div className="relative aspect-video overflow-hidden">
+                  {/* Image header with improved aspect ratio */}
+                  <div className="relative aspect-video overflow-hidden bg-gradient-to-br from-emerald-900/20 to-cyan-900/20">
                     <img
                       src={p.image}
                       alt={p.title}
-                      className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.04]"
+                      className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-110"
                     />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
 
-                    {/* live badge */}
-                    <span className="absolute left-3 top-3 inline-flex items-center gap-1 rounded-full border border-emerald-400/60 bg-black/50 px-2.5 py-0.5 text-[11px] uppercase tracking-wide text-emerald-200 backdrop-blur-sm">
-                      {p.hosted?.live ? (
-                        <FaCheckCircle className="text-emerald-400" />
-                      ) : (
-                        <FaCircle className="text-red-400" />
-                      )}
-                      {p.hosted?.live ? "Live Hosted" : "Not Hosted"}
-                    </span>
+                    {/* Status badges with improved styling */}
+                    <div className="absolute top-3 left-3 right-3 flex items-center justify-between">
+                      <span className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider backdrop-blur-md transition-all duration-300
+                        ${p.hosted?.live
+                          ? "border-emerald-400/70 bg-emerald-500/30 text-emerald-100 shadow-[0_0_15px_rgba(44,255,125,.4)]"
+                          : "border-red-400/70 bg-red-500/30 text-red-100"}`}>
+                        {p.hosted?.live ? (
+                          <>
+                            <FaCheckCircle className="text-emerald-300" />
+                            <span>Live</span>
+                          </>
+                        ) : (
+                          <>
+                            <FaCircle className="text-red-300 text-[6px]" />
+                            <span>Offline</span>
+                          </>
+                        )}
+                      </span>
 
-                    {/* paid/free pill */}
-                    {(() => {
-                      const isPaid = getPaidFlag(p);
-                      return (
-                        <span className={`absolute right-3 top-3 rounded-full px-2 py-0.5 text-[11px] uppercase tracking-wide border backdrop-blur-sm ${isPaid ? "border-rose-400/60 text-white bg-rose-500/20" : "border-emerald-400/60 text-emerald-200 bg-emerald-500/20"
-                          }`}>
-                          {isPaid ? "Paid" : "Free"}
-                        </span>
-                      );
-                    })()}
+                      {(() => {
+                        const isPaid = getPaidFlag(p);
+                        return (
+                          <span className={`rounded-lg px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider border backdrop-blur-md
+                            ${isPaid
+                              ? "border-rose-400/70 bg-rose-500/30 text-rose-100"
+                              : "border-cyan-400/70 bg-cyan-500/30 text-cyan-100"}`}>
+                            {isPaid ? "Paid" : "Free"}
+                          </span>
+                        );
+                      })()}
+                    </div>
                   </div>
 
-                  {/* body */}
-                  <div className="p-4">
-                    <h3 className="font-bold text-[1.05rem]">{p.title}</h3>
+                  {/* Card content */}
+                  <div className="p-5">
+                    <h3 className="font-bold text-lg text-slate-100 mb-3 group-hover:text-emerald-400 transition-colors duration-300">
+                      {p.title} {" "} {p.type && (
+                        <span className="text-[10px] font-semibold rounded-md px-2 py-1 border border-purple-400/40 bg-purple-500/15 text-purple-200">
+                          #{p.type}
+                        </span>
+                      )}
+                    </h3>
 
-                    {/* skill chips with colors */}
-                    <div className="mt-2 flex flex-wrap gap-2">
-                      {p.tech?.map((t) => {
-                        const color = projectsData.skillColors?.[t] || "bg-cyan-500/20 text-cyan-100 border-cyan-400/30";
+                    {/* Project Type & Tech stack chips */}
+                    <div className="flex flex-wrap gap-1.5 mb-4">
+                      {/* {p.type && (
+                        <span className="text-[10px] font-semibold rounded-md px-2 py-1 border border-purple-400/40 bg-purple-500/15 text-purple-200">
+                          #{p.type}
+                        </span>
+                      )} */}
+                      {p.tech?.slice(0, 4).map((t) => {
+                        const color = projectsData.skillColors?.[t] || "bg-cyan-500/15 text-cyan-200 border-cyan-400/40";
                         return (
                           <span
                             key={t}
-                            className={`text-[11px] rounded-full px-2 py-0.5 border ${color}`}
+                            className={`text-[10px] font-medium rounded-md px-2 py-1 border ${color} hover:scale-105 transition-transform duration-200`}
                           >
                             {t}
                           </span>
                         );
                       })}
+                      {p.tech?.length > 4 && (
+                        <span className="text-[10px] font-medium rounded-md px-2 py-1 border border-slate-400/40 bg-slate-500/15 text-slate-300">
+                          +{p.tech.length - 4}
+                        </span>
+                      )}
                     </div>
 
-                    {/* meta */}
-                    <div className="mt-3 flex items-center gap-2 text-xs text-cyan-200">
-                      <FaCalendarAlt /> Uploaded on: {p.uploadedOn}
+                    {/* Upload date */}
+                    <div className="flex items-center gap-2 text-xs text-slate-400 mb-4 pb-4 border-b border-emerald-400/20">
+                      <FaCalendarAlt className="text-emerald-400" />
+                      <span>
+                        {p.uploadedOn
+                          ? new Date(p.uploadedOn).toLocaleDateString("en-US", {
+                              month: "short",
+                              day: "2-digit",
+                              year: "numeric",
+                            })
+                          : "—"}
+                      </span>
                     </div>
 
-                    {/* footer actions */}
-                    <div className="mt-4 flex items-center justify-between">
+                    {/* Action buttons */}
+                    <div className="flex items-center gap-2">
                       <button
                         type="button"
                         onClick={() => openModal(p)}
-                        className="px-3 py-1.5 rounded-md text-sm font-medium bg-gradient-to-r from-cyan-500 to-emerald-500 text-black hover:shadow-[0_0_16px_rgba(44,255,125,.8)] transition"
+                        className="flex-1 px-4 py-2 rounded-lg text-sm font-semibold bg-gradient-to-r from-cyan-500 to-emerald-500 text-black hover:shadow-[0_0_20px_rgba(44,255,125,.6)] hover:scale-105 transition-all duration-300"
                       >
-                        Details
+                        View Details
                       </button>
 
                       <div className="flex gap-2">
@@ -532,9 +672,10 @@ const ProjectsPage = () => {
                             href={p.hosted.url}
                             target="_blank"
                             rel="noreferrer"
-                            className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md text-sm border border-emerald-400/60 text-emerald-300 hover:shadow-[0_0_14px_rgba(44,255,125,.55)] transition"
+                            title="Visit Live Site"
+                            className="inline-flex items-center justify-center w-9 h-9 rounded-lg text-sm border border-emerald-400/60 text-emerald-300 hover:bg-emerald-400/10 hover:shadow-[0_0_15px_rgba(44,255,125,.5)] transition-all duration-300"
                           >
-                            Visit <FaExternalLinkAlt />
+                            <FaExternalLinkAlt />
                           </a>
                         )}
                         {p.github && (
@@ -542,9 +683,10 @@ const ProjectsPage = () => {
                             href={p.github}
                             target="_blank"
                             rel="noreferrer"
-                            className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md text-sm border border-cyan-400/60 text-cyan-300 hover:shadow-[0_0_14px_rgba(34,211,238,.55)] transition"
+                            title="View on GitHub"
+                            className="inline-flex items-center justify-center w-9 h-9 rounded-lg text-sm border border-cyan-400/60 text-cyan-300 hover:bg-cyan-400/10 hover:shadow-[0_0_15px_rgba(34,211,238,.5)] transition-all duration-300"
                           >
-                            Github <FaGithub />
+                            <FaGithub />
                           </a>
                         )}
                       </div>
@@ -573,12 +715,12 @@ const ProjectsPage = () => {
           onClick={() => setMobileFiltersOpen(false)}
         >
           <div
-            className="absolute bottom-0 left-0 right-0 rounded-t-2xl bg-gray-900/95 border-t border-emerald-400/30 p-4 max-h-[80vh] overflow-y-auto"
+            className="absolute bottom-0 left-0 right-0 rounded-t-2xl bg-gray-900/95 border-t border-emerald-400/30 p-4 max-h-[50vh] overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
             onMouseDown={(e) => e.stopPropagation()}
             onTouchStart={(e) => e.stopPropagation()}
           >
-            <div className="mx-auto max-w-6xl">
+            <div className="mx-auto max-w-2xl">
               <div className="flex items-center justify-between">
                 <h3 className="font-bold text-emerald-300">Filters</h3>
                 <button
@@ -696,86 +838,225 @@ const ProjectsPage = () => {
         </div>
       )}
 
-      {/* ---------- MODAL (unchanged) ---------- */}
+      {/* ---------- MODAL ---------- */}
       {selected && (
         <div
-          className="fixed inset-0 z-50 grid place-items-center bg-black/70 backdrop-blur-sm"
+          className="fixed inset-0 z-[999] flex items-center justify-center bg-black/80 backdrop-blur-md p-4 pt-20 md:pt-24 pb-4"
           onClick={closeModal}
           aria-modal="true"
           role="dialog"
         >
           <div
-            className={`relative w-[min(92vw,720px)] max-h-[86vh] overflow-y-auto rounded-xl border border-emerald-400/40 bg-gray-900/95 p-4 sm:p-5 shadow-[0_0_30px_rgba(44,255,125,.35)] ${closing ? "animate-fadeOut" : "animate-fadeIn"}`}
+            className={`relative w-full max-w-3xl max-h-[calc(100vh-6rem)] md:max-h-[85vh] overflow-hidden rounded-2xl border border-emerald-400/50 bg-gradient-to-br from-[#0a0f1e] to-[#070b17] shadow-[0_0_50px_rgba(44,255,125,.4)] ${closing ? "animate-fadeOut" : "animate-fadeIn"}`}
             onClick={(e) => e.stopPropagation()}
           >
+            {/* Close button */}
             <button
               type="button"
               onClick={closeModal}
-              className="absolute right-3 top-3 inline-grid place-items-center rounded-md border border-emerald-400/40 p-2 text-emerald-200 hover:shadow-[0_0_12px_rgba(44,255,125,.7)] transition"
+              className="absolute right-3 top-3 z-10 inline-flex items-center justify-center w-9 h-9 rounded-full border-2 border-emerald-400/60 bg-black/50 backdrop-blur-sm text-emerald-200 hover:bg-emerald-400/20 hover:border-emerald-400 hover:shadow-[0_0_20px_rgba(44,255,125,.6)] transition-all duration-300"
               aria-label="Close"
             >
-              <FaTimes />
+              <FaTimes className="text-base" />
             </button>
 
-            <header className="mb-3">
-              <h3 className="text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-emerald-400 to-blue-400">
-                {selected.title}
-              </h3>
-            </header>
+            {/* Scrollable content */}
+            <div className="max-h-[calc(100vh-6rem)] md:max-h-[85vh] overflow-y-auto custom-scroll">
+              {/* Header with image */}
+              <div className="relative h-48 md:h-56 overflow-hidden">
+                <img
+                  src={selected.image}
+                  alt={selected.title}
+                  className="w-full h-full object-cover"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-[#070b17] via-[#070b17]/50 to-transparent" />
 
-            <div className="w-full overflow-hidden rounded-lg border border-emerald-400/25">
-              <img
-                src={selected.image}
-                alt={selected.title}
-                className="w-full max-h-52 object-cover"
-              />
-            </div>
-            <div className="mt-1 text-xs text-cyan-300 flex items-center gap-2">
-            <FaCalendarAlt />   <span className='text-white'>Uploaded at: </span> {selected.uploadedOn}
-            </div>
-            <div className="mt-3 flex flex-wrap gap-2">
-              <span>Skills Used: </span>
-              {selected.tech?.map((t) => {
-                const color = projectsData.skillColors?.[t] || "bg-cyan-500/20 text-cyan-100 border-cyan-400/30";
-                return (
-                  <>
-                    <span key={t} className={`px-2 py-1 text-xs rounded-full border ${color}`}>
-                      {t}
+                {/* Status badges overlay */}
+                <div className="absolute top-4 left-4 flex items-center gap-2">
+                  <span className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold uppercase tracking-wider backdrop-blur-md transition-all
+                    ${selected.hosted?.live
+                      ? "border-emerald-400/70 bg-emerald-500/30 text-emerald-100 shadow-[0_0_15px_rgba(44,255,125,.5)]"
+                      : "border-red-400/70 bg-red-500/30 text-red-100"}`}>
+                    {selected.hosted?.live ? (
+                      <>
+                        <FaCheckCircle className="text-emerald-300" />
+                        <span>Live</span>
+                      </>
+                    ) : (
+                      <>
+                        <FaCircle className="text-red-300 text-[6px]" />
+                        <span>Offline</span>
+                      </>
+                    )}
+                  </span>
+
+                  {(() => {
+                    const isPaid = getPaidFlag(selected);
+                    return (
+                      <span className={`rounded-lg px-3 py-1.5 text-xs font-semibold uppercase tracking-wider border backdrop-blur-md
+                        ${isPaid
+                          ? "border-rose-400/70 bg-rose-500/30 text-rose-100"
+                          : "border-cyan-400/70 bg-cyan-500/30 text-cyan-100"}`}>
+                        {isPaid ? "Paid" : "Free"}
+                      </span>
+                    );
+                  })()}
+                </div>
+              </div>
+
+              {/* Content */}
+              <div className="p-5 md:p-6">
+                {/* Title */}
+                <header className="mb-4">
+                  <h3 className="text-2xl md:text-3xl font-bold mb-2 bg-gradient-to-r from-cyan-400 via-emerald-400 to-cyan-400 bg-clip-text text-transparent">
+                    {selected.title}
+                  </h3>
+                  <div className="flex items-center gap-2 text-xs text-slate-400">
+                    <FaCalendarAlt className="text-emerald-400" />
+                    <span>
+                      {selected.uploadedOn
+                        ? new Date(selected.uploadedOn).toLocaleDateString("en-US", {
+                            month: "long",
+                            day: "numeric",
+                            year: "numeric",
+                          })
+                        : "Date not available"}
                     </span>
-                  </>
-                );
-              })}
-            </div>
-            {/* <p className='bg-gray-800 py-1 rounded text-white'>Description:</p> */}
-            <div className="custom-scroll mt-4 max-h-56 overflow-y-auto h-[90px] pr-1 border border-emerald-400/25 p-2 rounded">
-              <p className="text-sm leading-relaxed text-cyan-100">
-                {selected.description}
-              </p>
-            </div>
+                    {selected.type && (
+                      <span className="px-2.5 py-1 text-xs font-semibold rounded-md border border-purple-400/50 bg-purple-500/20 text-purple-200 hover:scale-105 transition-transform duration-200">
+                        #{selected.type}
+                      </span>
+                    )}
+                  </div>
+                </header>
 
+                {/* Description */}
+                <div className="mb-4">
+                  <h4 className="text-base font-semibold text-emerald-400 mb-2 flex items-center gap-2">
+                    <span className="w-1 h-4 bg-gradient-to-b from-cyan-400 to-emerald-400 rounded-full" />
+                    About this Project
+                  </h4>
+                  <div className="rounded-lg bg-white/[0.02] border border-emerald-400/20 p-4">
+                    {(() => {
+                      const description = selected.description || "No description available for this project.";
+                      const words = description.split(' ');
+                      const shouldTruncate = words.length > 50;
+                      const truncatedText = shouldTruncate ? words.slice(0, 50).join(' ') + '...' : description;
 
-            <footer className="mt-5 flex items-center gap-2 justify-end">
-              {selected.hosted?.live && (
-                <a
-                  href={selected.hosted.url}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-cyan-500 to-emerald-500 px-4 py-2 font-semibold text-black hover:shadow-[0_0_16px_rgba(44,255,125,.8)] transition"
-                >
-                  Visit <FaExternalLinkAlt />
-                </a>
-              )}
-              {selected.github && (
-                <a
-                  href={selected.github}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-flex items-center gap-2 rounded-full border border-cyan-400/60 px-4 py-2 text-cyan-300 hover:shadow-[0_0_14px_rgba(34,211,238,.55)] transition"
-                >
-                  Github <FaGithub />
-                </a>
-              )}
-            </footer>
+                      return (
+                        <>
+                          <p className="text-sm text-slate-300 leading-relaxed">
+                            {showFullDescription ? description : truncatedText}
+                          </p>
+                          {shouldTruncate && (
+                            <button
+                              type="button"
+                              onClick={() => setShowFullDescription(!showFullDescription)}
+                              className="mt-2 text-xs font-medium text-emerald-400 hover:text-emerald-300 transition-colors duration-200 flex items-center gap-1"
+                            >
+                              {showFullDescription ? (
+                                <>
+                                  Show Less
+                                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+                                  </svg>
+                                </>
+                              ) : (
+                                <>
+                                  Read More
+                                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                  </svg>
+                                </>
+                              )}
+                            </button>
+                          )}
+                        </>
+                      );
+                    })()}
+                  </div>
+                </div>
+
+                {/* Project Type & Tech Stack */}
+                {/* <div className="mb-4">
+                  <h4 className="text-base font-semibold text-emerald-400 mb-2 flex items-center gap-2">
+                    <span className="w-1 h-4 bg-gradient-to-b from-cyan-400 to-emerald-400 rounded-full" />
+                    Tech Stack & Type
+                  </h4>
+                  <div className="flex flex-wrap gap-1.5">
+                    {selected.type && (
+                      <span className="px-2.5 py-1 text-xs font-semibold rounded-md border border-purple-400/50 bg-purple-500/20 text-purple-200 hover:scale-105 transition-transform duration-200">
+                        #{selected.type}
+                      </span>
+                    )}
+                  </div>
+                </div> */}
+
+                <div className="mb-4">
+                  <h4 className="text-base font-semibold text-emerald-400 mb-2 flex items-center gap-2">
+                    <span className="w-1 h-4 bg-gradient-to-b from-cyan-400 to-emerald-400 rounded-full" />
+                    Tech Stack Used
+                  </h4>
+                  <div className="flex flex-wrap gap-1.5">
+                    {/* {selected.type && (
+                      <span className="px-2.5 py-1 text-xs font-semibold rounded-md border border-purple-400/50 bg-purple-500/20 text-purple-200 hover:scale-105 transition-transform duration-200">
+                        #{selected.type}
+                      </span>
+                    )} */}
+                    {selected.tech?.length > 0 ? (
+                      selected.tech.map((t) => {
+                        const color = projectsData.skillColors?.[t] || "bg-cyan-500/15 text-cyan-200 border-cyan-400/40";
+                        return (
+                          <span
+                            key={t}
+                            className={`px-2.5 py-1 text-xs font-medium rounded-md border ${color} hover:scale-105 transition-transform duration-200`}
+                          >
+                            {t}
+                          </span>
+                        );
+                      })
+                    ) : (
+                      <span className="text-slate-400 text-xs">No technologies listed</span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Project Links */}
+                <div className="pt-4 border-t border-emerald-400/20">
+                  <h4 className="text-base font-semibold text-emerald-400 mb-3 flex items-center gap-2">
+                    <span className="w-1 h-4 bg-gradient-to-b from-cyan-400 to-emerald-400 rounded-full" />
+                    Quick Links
+                  </h4>
+                  <div className="flex flex-wrap items-center gap-2">
+                    {selected.hosted?.live && (
+                      <a
+                        href={selected.hosted.url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-cyan-500 to-emerald-500 px-4 py-2 text-sm font-semibold text-black hover:shadow-[0_0_20px_rgba(44,255,125,.6)] hover:scale-105 transition-all duration-300"
+                      >
+                        <FaExternalLinkAlt className="text-xs" />
+                        Visit Live Site
+                      </a>
+                    )}
+                    {selected.github && (
+                      <a
+                        href={selected.github}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-2 rounded-lg border-2 border-cyan-400/60 bg-cyan-400/5 px-4 py-2 text-sm font-semibold text-cyan-300 hover:bg-cyan-400/10 hover:border-cyan-400 hover:shadow-[0_0_18px_rgba(34,211,238,.5)] transition-all duration-300"
+                      >
+                        <FaGithub className="text-xs" />
+                        View on GitHub
+                      </a>
+                    )}
+                    {!selected.hosted?.live && !selected.github && (
+                      <p className="text-slate-400 text-xs">No links available for this project</p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       )}
