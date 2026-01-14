@@ -43,6 +43,16 @@ const FALLBACK_TESTIMONIALS = [
 const Card = ({ item }) => {
   const [expanded, setExpanded] = useState(false);
   const isLong = item.text.length > 100;
+
+  // Extract first and last name initials
+  const getInitials = (name) => {
+    const names = name.trim().split(' ');
+    if (names.length >= 2) {
+      return names[0][0] + names[names.length - 1][0];
+    }
+    return name.slice(0, 2);
+  };
+
   return (
     <article
       className="min-w-[280px] sm:min-w-[320px] max-w-sm mr-6 rounded-2xl
@@ -55,11 +65,11 @@ const Card = ({ item }) => {
       <div className="flex items-center gap-3">
         <div className="relative">
           <div className="absolute inset-0 rounded-full bg-emerald-400/20 blur-md"></div>
-          <img
-            src={item.avatar}
-            alt={`${item.name} avatar`}
-            className="relative w-14 h-14 rounded-full ring-2 ring-emerald-400/60 border-2 border-[#050914]"
-          />
+          <div className="relative w-14 h-14 rounded-full ring-2 ring-emerald-400/60 border-2 border-[#050914] bg-gradient-to-br from-emerald-500/30 to-lime-500/30 flex items-center justify-center">
+            <span className="text-emerald-100 font-bold text-lg uppercase">
+              {getInitials(item.name)}
+            </span>
+          </div>
         </div>
         <div>
           <h4 className="text-emerald-100 font-bold leading-tight">
