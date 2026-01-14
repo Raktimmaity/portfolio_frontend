@@ -150,7 +150,7 @@ function AppLayout() {
                   <Projects />
                   <CoActivities />
                   <LanguageSection />
-                  <StrengthsInterests />
+                  {/* <StrengthsInterests /> */}
                   <Testimonials />
                   <Contact />
                 </>
