@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import {
   FaFacebookF,
   FaInstagram,
@@ -7,14 +7,33 @@ import {
   FaGithub,
 } from "react-icons/fa";
 
+const API_BASE = import.meta.env.VITE_API_BASE || import.meta.env.REACT_APP_API_BASE || "http://localhost:5000";
+
 const Sidebar = () => {
+  const [profileSocials, setProfileSocials] = useState({});
+
+  useEffect(() => {
+    fetch(`${API_BASE}/api/profile`)
+      .then((res) => res.json())
+      .then((data) =>
+        setProfileSocials({
+          socialFacebook: data?.socialFacebook || "",
+          socialInstagram: data?.socialInstagram || "",
+          socialSkype: data?.socialSkype || "",
+          socialLinkedIn: data?.socialLinkedIn || "",
+          socialGitHub: data?.socialGitHub || "",
+        })
+      )
+      .catch(() => {});
+  }, []);
+
   const icons = [
-    { icon: <FaFacebookF />, link: "#", label: "Facebook" },
-    { icon: <FaInstagram />, link: "#", label: "Instagram" },
-    { icon: <FaSkype />, link: "#", label: "Skype" },
-    { icon: <FaLinkedinIn />, link: "#", label: "LinkedIn" },
-    { icon: <FaGithub />, link: "#", label: "GitHub" },
-  ];
+    { icon: <FaFacebookF />, link: profileSocials.socialFacebook, label: "Facebook" },
+    { icon: <FaInstagram />, link: profileSocials.socialInstagram, label: "Instagram" },
+    { icon: <FaSkype />, link: profileSocials.socialSkype, label: "Skype" },
+    { icon: <FaLinkedinIn />, link: profileSocials.socialLinkedIn, label: "LinkedIn" },
+    { icon: <FaGithub />, link: profileSocials.socialGitHub, label: "GitHub" },
+  ].filter((item) => item.link && item.link.trim().length > 0);
 
   return (
     <div className="fixed top-1/2 -translate-y-1/2 left-4 z-40 hidden md:flex flex-col gap-5 items-center">

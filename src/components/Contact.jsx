@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import {
   FaMapMarkerAlt,
@@ -13,6 +13,8 @@ import {
 } from "react-icons/fa";
 import { toast } from "sonner";
 
+const API_BASE = import.meta.env.VITE_API_BASE || import.meta.env.REACT_APP_API_BASE || "http://localhost:5000";
+
 /* animations – short + easy to render */
 const container = {
   hidden: { opacity: 0, y: 24 },
@@ -21,27 +23,42 @@ const container = {
 const stagger = { show: { transition: { staggerChildren: 0.08, delayChildren: 0.05 } } };
 const item = { hidden: { opacity: 0, y: 16 }, show: { opacity: 1, y: 0, transition: { duration: 0.35 } } };
 
-/* ------------------ RIGHT SIDE DATA IN ONE OBJECT ------------------ */
-const contactInfo = {
-  location: { label: "Kolkata, West Bengal", icon: FaMapMarkerAlt },
-  email: { label: "raktim@example.com", href: "mailto:raktim@example.com", icon: FaEnvelope },
-  phone: { label: "+91 99999 99999", href: "tel:+919999999999", icon: FaPhoneAlt },
-  socials: [
-    { icon: FaFacebookF, href: "#" },
-    { icon: FaInstagram, href: "#" },
-    { icon: FaLinkedinIn, href: "#" },
-    { icon: FaGithub, href: "#" },
-    { icon: FaSkype, href: "#" },
-  ],
-};
-
 const initialForm = { name: "", email: "", subject: "", message: "" };
 
 const Contact = () => {
   const [form, setForm] = useState(initialForm);
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
-  const VITE_API_BASE = import.meta.env.VITE_API_BASE || import.meta.env.REACT_APP_API_BASE || "http://localhost:5000";
+  const [profile, setProfile] = useState(null);
+
+  useEffect(() => {
+    fetch(`${API_BASE}/api/profile`)
+      .then((res) => res.json())
+      .then((data) => setProfile(data))
+      .catch(() => {});
+  }, []);
+
+  /* ------------------ RIGHT SIDE DATA IN ONE OBJECT ------------------ */
+  const contactInfo = {
+    location: { label: profile?.address || "Kolkata, West Bengal", icon: FaMapMarkerAlt },
+    email: {
+      label: profile?.email || "raktim@example.com",
+      href: `mailto:${profile?.email || "raktim@example.com"}`,
+      icon: FaEnvelope,
+    },
+    phone: {
+      label: profile?.phone || "+91 99999 99999",
+      href: `tel:${profile?.phone || "+919999999999"}`,
+      icon: FaPhoneAlt,
+    },
+    socials: [
+      { icon: FaFacebookF, href: profile?.socialFacebook || "" },
+      { icon: FaInstagram, href: profile?.socialInstagram || "" },
+      { icon: FaLinkedinIn, href: profile?.socialLinkedIn || "" },
+      { icon: FaGithub, href: profile?.socialGitHub || "" },
+      { icon: FaSkype, href: profile?.socialSkype || "" },
+    ].filter((item) => item.href && item.href.trim().length > 0),
+  };
 
   const emailRegex = useMemo(
     () =>
@@ -80,7 +97,7 @@ const Contact = () => {
       setLoading(true);
 
       // Send to your backend route (adjust if needed)
-      const res = await fetch(`${VITE_API_BASE}/api/contact`, {
+      const res = await fetch(`${API_BASE}/api/contact`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(form),

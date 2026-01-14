@@ -23,6 +23,7 @@ import { Toaster } from "sonner";
 import Footer from "./components/Footer";
 import AboutMe from "./pages/AboutMe";
 import ProjectsPage from "./pages/ProjectsPage";
+import CoActivitiesPage from "./pages/CoActivitiesPage";
 import ScrollToTop from "./components/ScrollToTop";
 import BackToTop from "./components/BackToTop";
 import SideTabLink from "./components/SideTabLink";
@@ -160,6 +161,7 @@ function AppLayout() {
             <Route path="/contact-me" element={<Contact />} />
             <Route path="/review" element={<Review />} />
             <Route path="/my-projects" element={<ProjectsPage />} />
+            <Route path="/co-activities" element={<CoActivitiesPage />} />
 
             {/* Admin routes */}
             <Route path="/boss-login" element={<AdminLogin />} />

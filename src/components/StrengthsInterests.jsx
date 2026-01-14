@@ -1,9 +1,11 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { FaBolt, FaCheckCircle } from "react-icons/fa";
 
 /* --------- data --------- */
-const strengths = [
+const API_BASE = import.meta.env.VITE_API_BASE || import.meta.env.REACT_APP_API_BASE || "http://localhost:5000";
+
+const fallbackStrengths = [
   "Good Listener",
   "Punctual",
   "Quick Learner",
@@ -11,7 +13,7 @@ const strengths = [
   "Dedicated",
 ];
 
-const interests = [
+const fallbackInterests = [
   "Video Gaming",
   "Learn new things",
   "Watching movies",
@@ -43,6 +45,40 @@ const itemVariant = {
 };
 
 const StrengthsInterests = () => {
+  const [strengths, setStrengths] = useState([]);
+  const [interests, setInterests] = useState([]);
+
+  useEffect(() => {
+    fetch(`${API_BASE}/api/strengths-interests`)
+      .then((res) => res.json())
+      .then((data) => {
+        const list = Array.isArray(data) ? data : data?.items || [];
+        if (!Array.isArray(list)) {
+          setStrengths([]);
+          setInterests([]);
+          return;
+        }
+        const strengthItems = [];
+        const interestItems = [];
+        list.forEach((item) => {
+          const category = (item?.category || "").trim().toLowerCase();
+          if (category.includes("strength")) {
+            if (item?.name) strengthItems.push(item.name);
+            return;
+          }
+          if (category.includes("interest")) {
+            if (item?.name) interestItems.push(item.name);
+          }
+        });
+        setStrengths(strengthItems);
+        setInterests(interestItems);
+      })
+      .catch(() => {});
+  }, []);
+
+  const displayStrengths = strengths.length ? strengths : fallbackStrengths;
+  const displayInterests = interests.length ? interests : fallbackInterests;
+
   return (
     <motion.section
       id="strengths-interests"
@@ -84,7 +120,7 @@ const StrengthsInterests = () => {
           variants={cardVariant}
           className="relative p-6 rounded-xl bg-gradient-to-br from-gray-900/70 to-gray-800/50 
                      border border-cyan-400/30
-                     hover:shadow-[0_0_30px_rgba(34,211,238,0.35)] transition"
+                     hover:shadow-[0_0_30px_rgba(34,211,238,0.35)] transition self-start"
         >
           {/* header pill */}
           <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full
@@ -99,7 +135,7 @@ const StrengthsInterests = () => {
 
           {/* list */}
           <ul className="space-y-3">
-            {strengths.map((s, i) => (
+            {displayStrengths.map((s) => (
               <motion.li
                 key={s}
                 variants={itemVariant}
@@ -121,7 +157,7 @@ const StrengthsInterests = () => {
           variants={cardVariant}
           className="relative p-6 rounded-xl bg-gradient-to-br from-gray-900/70 to-gray-800/50 
                      border border-green-400/30
-                     hover:shadow-[0_0_30px_rgba(34,211,238,0.35)] transition"
+                     hover:shadow-[0_0_30px_rgba(34,211,238,0.35)] transition self-start"
         >
           {/* header pill */}
           <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full
@@ -136,7 +172,7 @@ const StrengthsInterests = () => {
 
           {/* list */}
           <ul className="space-y-3">
-            {interests.map((it) => (
+            {displayInterests.map((it) => (
               <motion.li
                 key={it}
                 variants={itemVariant}
@@ -145,7 +181,7 @@ const StrengthsInterests = () => {
                 <span className="mt-1 inline-flex h-2 w-2 rounded-full 
                                  bg-gradient-to-r from-green-400 to-cyan-400 
                                  shadow-[0_0_10px_rgba(34,211,238,0.9)]" />
-                <span className="text-gray-200 group-hover:text-white transition">
+                <span className="text-emerald-100  px-2 py-0.5 rounded-md group-hover:text-white transition">
                   {it}
                 </span>
               </motion.li>

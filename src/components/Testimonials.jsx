@@ -1,8 +1,11 @@
-import React, { useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { FaStar } from "react-icons/fa";
+import { motion } from "framer-motion";
+
+const API_BASE = import.meta.env.VITE_API_BASE || import.meta.env.REACT_APP_API_BASE || "http://localhost:5000";
 
 /* ---------- data ---------- */
-const TESTIMONIALS = [
+const FALLBACK_TESTIMONIALS = [
   {
     name: "Anshu Poddar",
     role: "Student",
@@ -36,60 +39,66 @@ const TESTIMONIALS = [
   },
 ];
 
-/* one card, neon-styled to match your theme */
+/* one card, green neon theme */
 const Card = ({ item }) => {
   const [expanded, setExpanded] = useState(false);
-  const isLong = item.text.length > 100; // adjust threshold if needed
+  const isLong = item.text.length > 100;
   return (
     <article
-      className="min-w-[280px] sm:min-w-[320px] max-w-sm mr-6 rounded-xl
-                 bg-gradient-to-br from-gray-900/75 to-gray-800/60
-                 border border-cyan-400/30
-                 hover:shadow-[0_0_30px_rgba(34,211,238,0.35)]
-                 transition p-5"
+      className="min-w-[280px] sm:min-w-[320px] max-w-sm mr-6 rounded-2xl
+                 bg-gradient-to-br from-[#0a1224]/80 to-[#050914]/80
+                 border border-emerald-400/20
+                 hover:border-emerald-400/50
+                 hover:shadow-[0_0_30px_rgba(16,185,129,0.3)]
+                 transition-all duration-300 backdrop-blur-sm p-6"
     >
       <div className="flex items-center gap-3">
-        <img
-          src={item.avatar}
-          alt={`${item.name} avatar`}
-          className="w-12 h-12 rounded-full ring-2 ring-cyan-400/60"
-        />
+        <div className="relative">
+          <div className="absolute inset-0 rounded-full bg-emerald-400/20 blur-md"></div>
+          <img
+            src={item.avatar}
+            alt={`${item.name} avatar`}
+            className="relative w-14 h-14 rounded-full ring-2 ring-emerald-400/60 border-2 border-[#050914]"
+          />
+        </div>
         <div>
-          <h4 className="text-white font-semibold leading-tight">
+          <h4 className="text-emerald-100 font-bold leading-tight">
             {item.name}
           </h4>
-          <span className="inline-block text-xs mt-1 px-2 py-0.5 rounded
-                           bg-black/40 border border-cyan-400/40
-                           text-cyan-200">
+          <span className="inline-block text-xs mt-1 px-3 py-1 rounded-full
+                           bg-emerald-500/10 border border-emerald-400/40
+                           text-emerald-300 font-medium">
             {item.role}
           </span>
         </div>
       </div>
 
       <div
-        className="mt-3 flex items-center gap-1"
+        className="mt-4 flex items-center gap-1"
         aria-label={`${item.rating} out of 5 stars`}
       >
         {Array.from({ length: 5 }).map((_, i) => (
           <FaStar
             key={i}
-            className={`text-yellow-400 drop-shadow-[0_0_8px_rgba(250,204,21,0.6)] ${i < item.rating ? "opacity-100" : "opacity-0"
-              }`}
+            className={`text-lime-400 drop-shadow-[0_0_10px_rgba(163,230,53,0.7)] ${
+              i < item.rating ? "opacity-100" : "opacity-20"
+            }`}
           />
         ))}
       </div>
 
-      {/* ✨ expandable text */}
+      {/* expandable text */}
       <p
-        className={`mt-4 text-sm text-gray-200 leading-relaxed whitespace-normal ${!expanded ? "line-clamp-2" : ""
-          }`}
+        className={`mt-4 text-sm text-slate-300 leading-relaxed whitespace-normal ${
+          !expanded ? "line-clamp-3" : ""
+        }`}
       >
         {item.text}
       </p>
       {isLong && (
         <button
           onClick={() => setExpanded((prev) => !prev)}
-          className="mt-2 text-cyan-400 text-sm font-medium hover:underline focus:outline-none"
+          className="mt-2 text-emerald-400 text-sm font-semibold hover:text-emerald-300 focus:outline-none transition-colors"
         >
           {expanded ? "See Less" : "See More"}
         </button>
@@ -100,52 +109,87 @@ const Card = ({ item }) => {
 
 
 const Testimonials = () => {
-  // duplicate the list to create a seamless loop
-  const LOOP = [...TESTIMONIALS, ...TESTIMONIALS];
+  const [testimonials, setTestimonials] = useState([]);
+
+  useEffect(() => {
+    fetch(`${API_BASE}/api/testimonials`)
+      .then((res) => res.json())
+      .then((data) =>
+        setTestimonials(Array.isArray(data) ? data : [])
+      )
+      .catch(() => {});
+  }, []);
+
+  const displayTestimonials = useMemo(() => {
+    if (!testimonials.length) return FALLBACK_TESTIMONIALS;
+    return testimonials.map((item) => ({
+      name: item?.name || "Anonymous",
+      role: item?.role || "Guest",
+      avatar: item?.avatar || "https://i.pravatar.cc/80?img=12",
+      rating: Number(item?.rating) || 0,
+      text: item?.text || "",
+    }));
+  }, [testimonials]);
+
+  // duplicate the list only when there are enough items to loop cleanly
+  const LOOP = displayTestimonials.length >= 4
+    ? [...displayTestimonials, ...displayTestimonials]
+    : displayTestimonials;
 
   return (
     <section
       id="testimonials"
-      className="relative py-16 px-6 md:px-12 max-w-6xl mx-auto mt-20"
+      className="relative py-20 px-6 md:px-12 max-w-7xl mx-auto overflow-hidden"
       aria-labelledby="testimonials-title"
     >
-      <h2
-        id="testimonials-title"
-        className="text-center text-3xl md:text-4xl font-bold text-transparent bg-clip-text
-                   bg-gradient-to-r from-cyan-400 via-green-400 to-blue-400"
-      >
-        Testimonials
-      </h2>
-      {/* half-width divider under the heading */}
-      {/* <div className="flex justify-center -mt-6 mb-8" aria-hidden="true">
-        <span className="inline-block h-[2px] w-1/2 rounded-full bg-gradient-to-r from-transparent via-cyan-400/60 to-transparent" />
-      </div> */}
-      <div className="flex justify-center mt-3" aria-hidden="true">
-        <span className="inline-block h-[2px] w-1/2 rounded-full bg-gradient-to-r from-transparent via-cyan-400/60 to-transparent" />
+      {/* Animated Background Effects */}
+      <div className="pointer-events-none absolute inset-0">
+        <div className="absolute top-10 right-10 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl" />
+        <div className="absolute bottom-10 left-10 w-[500px] h-[500px] bg-lime-500/10 rounded-full blur-3xl" />
       </div>
-      {/* scroller */}
-      <div className="group relative mt-10 overflow-hidden">
-        {/* fade masks on edges */}
-        <div className="pointer-events-none absolute inset-y-0 left-0 w-16
-                        bg-gradient-to-r from-[#0b0f19] to-transparent z-10" />
-        <div className="pointer-events-none absolute inset-y-0 right-0 w-16
-                        bg-gradient-to-l from-[#0b0f19] to-transparent z-10" />
 
-        <div className="flex items-stretch whitespace-nowrap animate-marquee will-change-transform">
-          {LOOP.map((item, idx) => (
-            <Card key={idx} item={item} />
-          ))}
+      <div className="relative z-10">
+        {/* Title */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, amount: 0.3 }}
+          transition={{ duration: 0.6 }}
+          className="text-center mb-16"
+        >
+          <h2
+            id="testimonials-title"
+            className="text-4xl md:text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-emerald-300 via-green-300 to-lime-300 drop-shadow-[0_0_25px_rgba(16,185,129,0.4)] mb-4"
+          >
+            Testimonials
+          </h2>
+          <div className="mx-auto h-[2px] w-32 rounded-full bg-gradient-to-r from-transparent via-emerald-400 to-transparent shadow-[0_0_15px_rgba(16,185,129,0.5)]" />
+        </motion.div>
+
+        {/* Scroller */}
+        <div className="group relative overflow-hidden">
+          {/* Fade masks on edges */}
+          <div className="pointer-events-none absolute inset-y-0 left-0 w-20 md:w-32
+                          bg-gradient-to-r from-[#050914] to-transparent z-10" />
+          <div className="pointer-events-none absolute inset-y-0 right-0 w-20 md:w-32
+                          bg-gradient-to-l from-[#050914] to-transparent z-10" />
+
+          <div className="flex items-stretch whitespace-nowrap animate-marquee will-change-transform">
+            {LOOP.map((item, idx) => (
+              <Card key={idx} item={item} />
+            ))}
+          </div>
         </div>
       </div>
 
-      {/* marquee animation + pause on hover (no Tailwind config changes needed) */}
+      {/* Marquee animation + pause on hover */}
       <style>{`
         @keyframes marqueeLeft {
           0%   { transform: translateX(0); }
           100% { transform: translateX(-50%); }
         }
         .animate-marquee {
-          animation: marqueeLeft 25s linear infinite;
+          animation: marqueeLeft 30s linear infinite;
         }
         /* pause on hover of the whole section */
         .group:hover .animate-marquee {

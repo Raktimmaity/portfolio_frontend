@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import {
     FaFacebookF,
     FaInstagram,
@@ -11,19 +11,7 @@ import {
 } from "react-icons/fa";
 import { Link } from "react-router-dom";   // ✅ added
 
-/* —— editable data —— */
-const brand = {
-    name: "Raktim Maity",
-    title: "Web Developer, Front-End Web Developer, UI Developer",
-    avatar: "https://i.pravatar.cc/180?img=13",
-    socials: [
-        { icon: <FaFacebookF />, href: "#" },
-        { icon: <FaInstagram />, href: "#" },
-        { icon: <FaSkype />, href: "#" },
-        { icon: <FaLinkedinIn />, href: "#" },
-        { icon: <FaGithub />, href: "#" },
-    ],
-};
+const API_BASE = import.meta.env.VITE_API_BASE || import.meta.env.REACT_APP_API_BASE || "http://localhost:5000";
 
 
 // ✅ updated to match Navbar routes
@@ -42,17 +30,44 @@ const important = [
     {label: "Co-Activities", to: "/co-activities"},
 ]
 
-const contact = {
-    location: { icon: <FaMapMarkerAlt />, text: "Tamluk, West Bengal" },
-    phone: { icon: <FaPhoneAlt />, text: "+91 6295396929", href: "tel:+916295396929" },
-    email: {
-        icon: <FaEnvelope />,
-        text: "reach.raktimmaity@gmail.com",
-        href: "mailto:reach.raktimmaity@gmail.com",
-    },
-};
-
 const Footer = () => {
+    const [profile, setProfile] = useState(null);
+
+    useEffect(() => {
+        fetch(`${API_BASE}/api/profile`)
+            .then((res) => res.json())
+            .then((data) => setProfile(data))
+            .catch(() => {});
+    }, []);
+
+    /* —— editable data —— */
+    const brand = {
+        name: profile?.name || "Raktim Maity",
+        title: profile?.job || "Web Developer, Front-End Web Developer, UI Developer",
+        avatar: profile?.avatar || "https://i.pravatar.cc/180?img=13",
+        socials: [
+            { icon: <FaFacebookF />, href: profile?.socialFacebook || "" },
+            { icon: <FaInstagram />, href: profile?.socialInstagram || "" },
+            { icon: <FaSkype />, href: profile?.socialSkype || "" },
+            { icon: <FaLinkedinIn />, href: profile?.socialLinkedIn || "" },
+            { icon: <FaGithub />, href: profile?.socialGitHub || "" },
+        ].filter((item) => item.href && item.href.trim().length > 0),
+    };
+
+    const contact = {
+        location: { icon: <FaMapMarkerAlt />, text: profile?.address || "Tamluk, West Bengal" },
+        phone: {
+            icon: <FaPhoneAlt />,
+            text: profile?.phone || "+91 6295396929",
+            href: `tel:${profile?.phone || "+916295396929"}`,
+        },
+        email: {
+            icon: <FaEnvelope />,
+            text: profile?.email || "reach.raktimmaity@gmail.com",
+            href: `mailto:${profile?.email || "reach.raktimmaity@gmail.com"}`,
+        },
+    };
+
     return (
         <footer className="relative bg-[#0b0f19] text-white mt-24">
             {/* Wavy top */}
@@ -161,7 +176,7 @@ const Footer = () => {
                             <li className="flex items-start gap-3">
                                 <span className="text-cyan-300 mt-0.5">{contact.phone.icon}</span>
                                 <a href={contact.phone.href} className="text-gray-200 hover:text-white transition">
-                                    {contact.phone.text}
+                                   +91{" "} {contact.phone.text}
                                 </a>
                             </li>
                             <li className="flex items-start gap-3">

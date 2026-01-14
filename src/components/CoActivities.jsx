@@ -1,7 +1,10 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { FaCalendarAlt } from "react-icons/fa";
+import { Link } from "react-router-dom";
 
-const items = [
+const API_BASE = import.meta.env.VITE_API_BASE || import.meta.env.REACT_APP_API_BASE || "http://localhost:5000";
+
+const fallbackItems = [
     {
         title: "Neon Styled Section",
         date: "Aug 2025",
@@ -21,6 +24,14 @@ const items = [
 const CoActivities = () => {
     const [selected, setSelected] = useState(null);
     const [closing, setClosing] = useState(false);
+    const [items, setItems] = useState([]);
+
+    useEffect(() => {
+        fetch(`${API_BASE}/api/co-activities`)
+            .then((res) => res.json())
+            .then((data) => setItems(Array.isArray(data) ? data : []))
+            .catch(() => {});
+    }, []);
 
     const handleClose = () => {
         setClosing(true);
@@ -29,6 +40,16 @@ const CoActivities = () => {
             setClosing(false);
         }, 300); // fade-out duration
     };
+
+    const displayItems = items.length
+        ? items.map((item) => ({
+            title: item?.title || "Untitled Activity",
+            date: item?.date || "",
+            img: item?.imageUrl || "https://picsum.photos/500/300?random=1",
+            desc: item?.description || "",
+            tech: [],
+        })).slice(0, 2)
+        : fallbackItems;
 
     return (
         <section
@@ -47,7 +68,7 @@ const CoActivities = () => {
 
             {/* Cards */}
             <div className="grid md:grid-cols-2 gap-8">
-                {items.map((item, idx) => (
+                {displayItems.map((item, idx) => (
                     <div
                         key={idx}
                         className="p-6 rounded-xl bg-gradient-to-br from-gray-900/70 to-gray-800/50 border border-cyan-400/30 hover:shadow-[0_0_25px_rgba(34,211,238,0.6)] transition"
@@ -55,7 +76,7 @@ const CoActivities = () => {
                         <img
                             src={item.img}
                             alt={item.title}
-                            className="rounded-lg mb-4 border border-cyan-400/20 shadow-md"
+                            className="rounded-lg mb-4 border border-cyan-400/20 shadow-md w-[600px] h-[420px] object-cover"
                         />
                         <h3 className="text-xl font-bold text-white mb-2">{item.title}</h3>
                         <p className="flex items-center gap-2 text-sm text-cyan-300">
@@ -70,6 +91,15 @@ const CoActivities = () => {
                         </button>
                     </div>
                 ))}
+            </div>
+
+            <div className="text-center mt-10">
+                <Link
+                    to="/co-activities"
+                    className="inline-flex items-center gap-2 px-6 py-2 text-sm font-medium text-white rounded-full bg-gradient-to-r from-cyan-500 to-green-500 hover:shadow-[0_0_18px_rgba(34,211,238,0.8)] transition"
+                >
+                    View More
+                </Link>
             </div>
 
             {/* Modal */}

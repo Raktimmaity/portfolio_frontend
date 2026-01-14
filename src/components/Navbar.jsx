@@ -2,14 +2,32 @@ import React, { useState, useEffect } from "react";
 import { Link, NavLink } from "react-router-dom";
 import { FaFacebookF, FaInstagram, FaSkype, FaLinkedinIn, FaGithub } from "react-icons/fa";
 
+const API_BASE = import.meta.env.VITE_API_BASE || import.meta.env.REACT_APP_API_BASE || "http://localhost:5000";
+
 const Navbar = () => {
   const [open, setOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [profileSocials, setProfileSocials] = useState({});
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 10);
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  useEffect(() => {
+    fetch(`${API_BASE}/api/profile`)
+      .then((res) => res.json())
+      .then((data) =>
+        setProfileSocials({
+          socialFacebook: data?.socialFacebook || "",
+          socialInstagram: data?.socialInstagram || "",
+          socialSkype: data?.socialSkype || "",
+          socialLinkedIn: data?.socialLinkedIn || "",
+          socialGitHub: data?.socialGitHub || "",
+        })
+      )
+      .catch(() => {});
   }, []);
 
   const navItems = [
@@ -22,12 +40,12 @@ const Navbar = () => {
   ];
 
   const socials = [
-    { icon: <FaFacebookF />, link: "#" },
-    { icon: <FaInstagram />, link: "#" },
-    { icon: <FaSkype />, link: "#" },
-    { icon: <FaLinkedinIn />, link: "#" },
-    { icon: <FaGithub />, link: "#" },
-  ];
+    { icon: <FaFacebookF />, link: profileSocials.socialFacebook },
+    { icon: <FaInstagram />, link: profileSocials.socialInstagram },
+    { icon: <FaSkype />, link: profileSocials.socialSkype },
+    { icon: <FaLinkedinIn />, link: profileSocials.socialLinkedIn },
+    { icon: <FaGithub />, link: profileSocials.socialGitHub },
+  ].filter((social) => social.link && social.link.trim().length > 0);
 
   return (
     <header
@@ -47,23 +65,38 @@ const Navbar = () => {
             </Link>
 
             {/* Desktop Links */}
-            <ul className="hidden md:flex gap-8 text-white">
-              {navItems.map(({ label, to }) => (
-                <li key={to} className="relative group">
-                  <NavLink
-                    to={to}
-                    className={({ isActive }) =>
-                      `text-sm uppercase tracking-wide transition-colors duration-200 ${
-                        isActive ? "text-cyan-400" : "hover:text-cyan-300"
-                      }`
-                    }
-                  >
-                    {label}
-                    <span className="absolute left-0 -bottom-1 w-0 h-[2px] bg-gradient-to-r from-cyan-400 via-green-400 to-blue-400 rounded-full transition-all duration-300 group-hover:w-full" />
-                  </NavLink>
-                </li>
-              ))}
-            </ul>
+            <div className="hidden md:flex items-center gap-8 text-white">
+              <ul className="flex gap-8">
+                {navItems.map(({ label, to }) => (
+                  <li key={to} className="relative group">
+                    <NavLink
+                      to={to}
+                      className={({ isActive }) =>
+                        `text-sm uppercase tracking-wide transition-colors duration-200 ${
+                          isActive ? "text-cyan-400" : "hover:text-cyan-300"
+                        }`
+                      }
+                    >
+                      {label}
+                      <span className="absolute left-0 -bottom-1 w-0 h-[2px] bg-gradient-to-r from-cyan-400 via-green-400 to-blue-400 rounded-full transition-all duration-300 group-hover:w-full" />
+                    </NavLink>
+                  </li>
+                ))}
+              </ul>
+              {/* {socials.length > 0 && (
+                <div className="flex items-center gap-4">
+                  {socials.map((s, i) => (
+                    <a
+                      key={i}
+                      href={s.link}
+                      className="text-cyan-300 text-lg hover:text-green-400 transition transform hover:rotate-6 hover:scale-110"
+                    >
+                      {s.icon}
+                    </a>
+                  ))}
+                </div>
+              )} */}
+            </div>
 
             {/* Mobile Toggle */}
             <button
