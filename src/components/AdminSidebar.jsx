@@ -531,7 +531,7 @@ const AdminSidebar = () => {
               <FaUsers className="text-lg" /> Testimonial
             </NavLink>
 
-            <NavLink
+            {/* <NavLink
               to="/admin-users"
               className={({ isActive }) =>
                 `flex items-center gap-3 px-6 py-3 text-gray-300 hover:text-cyan-400 hover:bg-cyan-400/10 transition-all duration-300 ${
@@ -543,9 +543,9 @@ const AdminSidebar = () => {
               onClick={() => setOpen(false)}
             >
               <FaUsers className="text-lg" /> Manage Users
-            </NavLink>
+            </NavLink> */}
 
-            <NavLink
+            {/* <NavLink
               to="/admin-reports"
               className={({ isActive }) =>
                 `flex items-center gap-3 px-6 py-3 text-gray-300 hover:text-cyan-400 hover:bg-cyan-400/10 transition-all duration-300 ${
@@ -557,7 +557,7 @@ const AdminSidebar = () => {
               onClick={() => setOpen(false)}
             >
               <FaChartPie className="text-lg" /> Reports
-            </NavLink>
+            </NavLink> */}
 
             <div className="px-6 pt-5 pb-2 text-xs uppercase tracking-widest text-cyan-200/60">
               Settings
@@ -703,7 +703,7 @@ const AdminSidebar = () => {
               </div>
             </div>
 
-            <NavLink
+            {/* <NavLink
               to="/admin-settings"
               className={({ isActive }) =>
                 `flex items-center gap-3 px-6 py-3 text-gray-300 hover:text-cyan-400 hover:bg-cyan-400/10 transition-all duration-300 ${
@@ -715,7 +715,7 @@ const AdminSidebar = () => {
               onClick={() => setOpen(false)}
             >
               <FaCogs className="text-lg" /> Settings
-            </NavLink>
+            </NavLink> */}
           </nav>
         </div>
 
